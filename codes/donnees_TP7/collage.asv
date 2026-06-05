@@ -1,0 +1,53 @@
+function u = collage(r,s,interieur)
+
+    % pixels dans r
+    [nb_lignes, nb_colonnes, nb_canaux]= size(r);
+    N = nb_lignes*nb_colonnes;
+    
+    r = double(r);
+    s = double(s);
+    
+    % calcul de A
+    e = ones(N,1);
+    Dx = spdiags([-e e],[0 nb_lignes],N,N);
+    Dx(end-nb_lignes+1:end,:) = 0;
+    Dy = spdiags([-e e],[0 1],N,N);
+    Dy(nb_lignes:nb_lignes:end,:) = 0;
+    A = (-Dx'*Dx-Dy'*Dy);
+    
+    % conditions au bords
+    n_bord_r = 2*nb_lignes + 2*nb_colonnes - 4;
+    bord_r = zeros(nb_lignes,nb_colonnes);
+    bord_r(1,:) = ones(1,nb_colonnes);
+    bord_r(nb_lignes,:) = ones(1,nb_colonnes);
+    bord_r(:,1) = ones(nb_lignes,1);
+    bord_r(:,nb_colonnes) = ones(nb_lignes,1);
+    indices_bord_r = find(bord_r>0); 
+    indices_bord_r
+    A(indices_bord_r,:) = sparse(1:n_bord_r,indices_bord_r,ones(n_bord_r,1),n_bord_r,N);
+
+    row_i_b,col_i_b = ind2sub([],
+    
+    %calcul du second membre div g et resolutoin systeme
+    b = zeros(N,nb_canaux);
+    for k=1:nb_canaux
+        rk = r(:,:,k);
+        rk = rk(:);
+        sk = s(:,:,k);
+        sk = sk(:);
+        gradient_c = [Dx*rk, Dy*rk];
+        gradient_s = [Dx*sk, Dy*sk];
+        gradient_c(interieur) = gradient_s(interieur);
+        div_g = (-Dx')*gradient_c(:,1) + (-Dy')*gradient_c(:,2);
+
+        div_g(indices_bord_r) = r(indices_bord_r,k);
+        b(:,k) = div_g;
+    end
+    
+    % resolution système
+    u = zeros(N,nb_canaux);
+    for k=1:nb_canaux
+        u(:,k) = A\b(:,k);
+    end
+
+end
